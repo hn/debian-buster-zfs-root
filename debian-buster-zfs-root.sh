@@ -44,7 +44,7 @@ while read -r IDLINK; do
 	BYID["$(basename "$(readlink "$IDLINK")")"]="$IDLINK"
 done < <(find /dev/disk/by-id/ -type l)
 
-for DISK in $(lsblk -I8 -dn -o name); do
+for DISK in $(lsblk -I8,254,259 -dn -o name); do
 	if [ -z "${BYID[$DISK]}" ]; then
 		SELECT+=("$DISK" "(no /dev/disk/by-id persistent device name available)" off)
 	else
