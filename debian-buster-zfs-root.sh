@@ -269,7 +269,7 @@ if [ "${GRUBPKG:0:8}" == "grub-efi" ]; then
 	for EFIPARTITION in "${EFIPARTITIONS[@]}"; do
 		mkdosfs -F 32 -n EFI-$I $EFIPARTITION
 		mount $EFIPARTITION /target/boot/efi
-		chroot /target /usr/sbin/grub-install --target=x86_64-efi --efi-directory=/boot/efi --bootloader-id="Debian $TARGETDIST (RAID disk $I)" --recheck --no-floppy
+		chroot /target /usr/sbin/grub-install --target=x86_64-efi --no-uefi-secure-boot --efi-directory=/boot/efi --bootloader-id="Debian $TARGETDIST (RAID disk $I)" --recheck --no-floppy
 		umount $EFIPARTITION
 		if [ $I -gt 0 ]; then
 			EFIBAKPART="#"
