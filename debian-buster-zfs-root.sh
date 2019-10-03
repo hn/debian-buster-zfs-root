@@ -302,7 +302,7 @@ if [ "$GRUBTYPE" == "$EFI" ]; then
 		done < <(efibootmgr | grep "$BOOTLOADERID" | sed "s/^Boot\(....\).*$/\1/g")
 
 		# Add EFI entry for this disk
-		efibootmgr -c --label "$BOOTLOADERID" --loader "\EFI\debian\grubx64.efi" --disk "$EFIPARTITION" --part $PARTEFI
+		efibootmgr -c --label "$BOOTLOADERID" --loader "\EFI\debian\shimx64.efi" --disk "$EFIPARTITION" --part $PARTEFI
 
 		if [ $I -gt 0 ]; then
 			EFIBAKPART="#"
