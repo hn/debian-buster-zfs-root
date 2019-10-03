@@ -24,6 +24,10 @@
 # with this program. If not, see <http://www.gnu.org/licenses/gpl-3.0.txt>.
 #
 
+### Constants
+BIOS="bios"
+EFI="efi"
+
 ### Static settings
 
 ZPOOL=rpool
@@ -87,10 +91,10 @@ fi
 RAIDLEVEL=$(head -n1 "$TMPFILE" | tr '[:upper:]' '[:lower:]')
 
 case "$RAIDLEVEL" in
-  raid0)
+	raid0)
 	RAIDDEF="${ZFSPARTITIONS[*]}"
-  	;;
-  raid1)
+		;;
+	raid1)
 	if [ $((${#ZFSPARTITIONS[@]} % 2)) -ne 0 ]; then
 		echo "Need an even number of disks for RAID level '$RAIDLEVEL': ${ZFSPARTITIONS[@]}" >&2
 		exit 1
@@ -103,17 +107,17 @@ case "$RAIDLEVEL" in
 		RAIDDEF+=" $ZFSPARTITION"
 		((I++)) || true
 	done
-  	;;
-  *)
+		;;
+	*)
 	if [ ${#ZFSPARTITIONS[@]} -lt 3 ]; then
 		echo "Need at least 3 disks for RAID level '$RAIDLEVEL': ${ZFSPARTITIONS[@]}" >&2
 		exit 1
 	fi
 	RAIDDEF="$RAIDLEVEL ${ZFSPARTITIONS[*]}"
-  	;;
+		;;
 esac
 
-GRUBPKG=grub-pc
+GRUBTYPE=$BIOS
 if [ -d /sys/firmware/efi ]; then
 	whiptail --backtitle "$0" --title "EFI boot" --separate-output \
 		--menu "\nYour hardware supports EFI. Which boot method should be used in the new to be installed system?\n" 20 74 8 \
@@ -123,8 +127,9 @@ if [ -d /sys/firmware/efi ]; then
 	if [ $? -ne 0 ]; then
 		exit 1
 	fi
+
 	if grep -qi EFI $TMPFILE; then
-		GRUBPKG=grub-efi-amd64
+		GRUBTYPE=$EFI
 	fi
 fi
 
@@ -163,6 +168,10 @@ if [ ! -f /sbin/zpool ]; then NEED_PACKAGES+=(zfsutils-linux); fi
 if [ ! -f /usr/sbin/debootstrap ]; then NEED_PACKAGES+=(debootstrap); fi
 if [ ! -f /sbin/sgdisk ]; then NEED_PACKAGES+=(gdisk); fi
 if [ ! -f /sbin/mkdosfs ]; then NEED_PACKAGES+=(dosfstools); fi
+
+# Required packages for EFI
+if [ "$GRUBTYPE" == "$EFI" ] && [ ! -f /usr/bin/efibootmgr ]; then NEED_PACKAGES+=(efibootmgr); fi
+
 echo "Need packages: ${NEED_PACKAGES[@]}"
 if [ -n "${NEED_PACKAGES[*]}" ]; then DEBIAN_FRONTEND=noninteractive apt-get install --yes "${NEED_PACKAGES[@]}"; fi
 
@@ -179,8 +188,8 @@ for DISK in "${DISKS[@]}"; do
 	sgdisk --zap-all $DISK
 
 	sgdisk -a1 -n$PARTBIOS:34:2047   -t$PARTBIOS:EF02 \
-	           -n$PARTEFI:2048:+512M -t$PARTEFI:EF00 \
-                   -n$PARTZFS:0:0        -t$PARTZFS:BF01 $DISK
+						 -n$PARTEFI:2048:+512M -t$PARTEFI:EF00 \
+									 -n$PARTZFS:0:0        -t$PARTZFS:BF01 $DISK
 done
 
 sleep 2
@@ -256,21 +265,45 @@ chroot /target /usr/sbin/locale-gen
 
 chroot /target /usr/bin/apt-get update
 
+# Select correct grub for the requested plattform
+if [ "$GRUBTYPE" == "$EFI" ]; then
+	GRUBPKG="grub-efi-amd64"
+else
+	GRUBPKG="grub-pc"
+fi
+
 chroot /target /usr/bin/apt-get install --yes grub2-common $GRUBPKG zfs-initramfs zfs-dkms
 grep -q zfs /target/etc/default/grub || perl -i -pe 's/quiet/boot=zfs quiet/' /target/etc/default/grub 
 chroot /target /usr/sbin/update-grub
 
-if [ "${GRUBPKG:0:8}" == "grub-efi" ]; then
-
+if [ "$GRUBTYPE" == "$EFI" ]; then
 	# "This is arguably a mis-design in the UEFI specification - the ESP is a single point of failure on one disk."
 	# https://wiki.debian.org/UEFI#RAID_for_the_EFI_System_Partition
+
 	mkdir -pv /target/boot/efi
 	I=0
 	for EFIPARTITION in "${EFIPARTITIONS[@]}"; do
+		BOOTLOADERID="Debian $TARGETDIST (RAID disk $I)"
+
 		mkdosfs -F 32 -n EFI-$I $EFIPARTITION
 		mount $EFIPARTITION /target/boot/efi
-		chroot /target /usr/sbin/grub-install --target=x86_64-efi --efi-directory=/boot/efi --bootloader-id="Debian $TARGETDIST (RAID disk $I)" --recheck --no-floppy
+
+		# Install grub to the EFI directory without setting an EFI entry to the NVRAM
+		# We need to add the EFI entry manually because the --bootloader-id doesn't work when using secure boot
+		# This is because the grubx64.efi has /EFI/debian/grub hardcoreded for secure boot reasons
+		# As a workaround we install grub into /EFI/debian/grub and add the EFI entrys per disk manually
+		# See: https://bugs.debian.org/cgi-bin/bugreport.cgi?bug=%23925309
+		chroot /target /usr/sbin/grub-install --target=x86_64-efi --efi-directory=/boot/efi --no-nvram --recheck --no-floppy
 		umount $EFIPARTITION
+
+		# Delete entry from EFI if it already exists
+		while read -r bootnum; do
+			efibootmgr -b $bootnum --delete-bootnum
+		done < <(efibootmgr | grep "$BOOTLOADERID" | sed "s/^Boot\(....\).*$/\1/g")
+
+		# Add EFI entry for this disk
+		efibootmgr -c --label "$BOOTLOADERID" --loader "\EFI\debian\grubx64.efi" --disk "$EFIPARTITION" --part $PARTEFI
+
 		if [ $I -gt 0 ]; then
 			EFIBAKPART="#"
 		fi
