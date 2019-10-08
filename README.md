@@ -3,7 +3,7 @@ Installs Debian GNU/Linux 10 Buster to a native ZFS root filesystem using a [Deb
 
 ## Warning
 
-Due to [problems with grub-efi-amd64-signed](https://bugs.debian.org/cgi-bin/bugreport.cgi?bug=925309) UEFI secure boot has been disabled until a proper fix is available (reported by [SoerenBusse](https://github.com/hn/debian-buster-zfs-root/issues/3#issuecomment-537257899) ).
+Due to [problems with grub-efi-amd64-signed](https://bugs.debian.org/cgi-bin/bugreport.cgi?bug=925309) UEFI secure boot has been disabled until a proper solution is available ([SoerenBusse](https://github.com/hn/debian-buster-zfs-root/issues/3#issuecomment-537257899) has created [a fix](https://github.com/hn/debian-buster-zfs-root/pull/4) which has not been reviewd yet).
 
 ## Usage
 
