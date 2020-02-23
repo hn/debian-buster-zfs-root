@@ -54,7 +54,7 @@ done
 
 TMPFILE=$(mktemp)
 whiptail --backtitle "$0" --title "Drive selection" --separate-output \
-	--checklist "\nPlease select ZFS RAID drives\n" 20 74 8 "${SELECT[@]}" 2>"$TMPFILE"
+	--checklist "\nPlease select ZFS drives\n" 20 74 8 "${SELECT[@]}" 2>"$TMPFILE"
 
 if [ $? -ne 0 ]; then
 	exit 1
@@ -74,7 +74,7 @@ done < "$TMPFILE"
 
 whiptail --backtitle "$0" --title "RAID level selection" --separate-output \
 	--radiolist "\nPlease select ZFS RAID level\n" 20 74 8 \
-	"RAID0" "Striped disks" off \
+	"RAID0" "Striped disks or single disk" off \
 	"RAID1" "Mirrored disks (RAID10 for n>=4)" on \
 	"RAIDZ" "Distributed parity, one parity block" off \
 	"RAIDZ2" "Distributed parity, two parity blocks" off \
