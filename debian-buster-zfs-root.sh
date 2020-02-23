@@ -311,7 +311,12 @@ test -n "$ETHDEV" || ETHDEV=enp0s1
 echo -e "\nauto $ETHDEV\niface $ETHDEV inet dhcp\n" >>/target/etc/network/interfaces
 echo -e "$NEWDNS" >> /target/etc/resolv.conf
 
-chroot /target /usr/bin/passwd
+until chroot /target /usr/bin/passwd
+do
+  echo "Try again"
+  sleep 2
+done
+
 chroot /target /usr/sbin/dpkg-reconfigure tzdata
 
 sync
