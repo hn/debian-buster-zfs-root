@@ -40,6 +40,7 @@ SIZEVARTMP=3G
 NEWHOST="" #Manually specify hostname of new install, otherwise it will be generated
 NEWDNS="nameserver 8.8.8.8\nnameserver 8.8.4.4"
 NOSWAP="" #Set NOSWAP to be something other than "" and no SWAP dataset will be created/used
+NEWPATH=$PATH
 
 ### User settings
 
@@ -317,6 +318,7 @@ do
   sleep 2
 done
 
+chroot /target /bin/bash -c "export PATH=$NEWPATH" #Exporting root PATH to root on new system
 chroot /target /usr/sbin/dpkg-reconfigure tzdata
 
 sync
