@@ -39,7 +39,7 @@ SIZEVARTMP=3G
 
 NEWHOST="" #Manually specify hostname of new install, otherwise it will be generated
 NEWDNS="nameserver 8.8.8.8\nnameserver 8.8.4.4"
-
+NOSWAP="" #Set NOSWAP to be something other than "" and no SWAP dataset will be created/used
 
 ### User settings
 
@@ -219,10 +219,12 @@ mkdir -v -m 1777 /target/var/tmp
 mount -t zfs $ZPOOL/var/tmp /target/var/tmp
 chmod 1777 /target/var/tmp
 
+if [ "NOSWAP" == "" ] ; then 
 zfs create -V $SIZESWAP -b "$(getconf PAGESIZE)" -o primarycache=metadata -o com.sun:auto-snapshot=false -o logbias=throughput -o sync=always $ZPOOL/swap
 # sometimes needed to wait for /dev/zvol/$ZPOOL/swap to appear
 sleep 2
 mkswap -f /dev/zvol/$ZPOOL/swap
+fi
 
 zpool status
 zfs list
@@ -236,7 +238,7 @@ sed -i "1s/^/127.0.1.1\t$NEWHOST\n/" /target/etc/hosts
 
 # Copy hostid as the target system will otherwise not be able to mount the misleadingly foreign file system
 cp -va /etc/hostid /target/etc/
-
+if [ "NOSWAP" == "" ] ; then 
 cat << EOF >/target/etc/fstab
 # /etc/fstab: static file system information.
 #
@@ -249,6 +251,19 @@ cat << EOF >/target/etc/fstab
 $ZPOOL/var                /var            zfs     defaults        0       0
 $ZPOOL/var/tmp            /var/tmp        zfs     defaults        0       0
 EOF
+else
+cat << EOF >/target/etc/fstab
+# /etc/fstab: static file system information.
+#
+# Use 'blkid' to print the universally unique identifier for a
+# device; this may be used with UUID= as a more robust way to name devices
+# that works even if disks are added and removed. See fstab(5).
+#
+# <file system>         <mount point>   <type>  <options>       <dump>  <pass>
+$ZPOOL/var                /var            zfs     defaults        0       0
+$ZPOOL/var/tmp            /var/tmp        zfs     defaults        0       0
+EOF
+fi
 
 mount --rbind /dev /target/dev
 mount --rbind /proc /target/proc
