@@ -38,6 +38,8 @@ SIZETMP=3G
 SIZEVARTMP=3G
 
 NEWHOST="" #Manually specify hostname of new install, otherwise it will be generated
+NEWDNS="nameserver 8.8.8.8\nnameserver 8.8.4.4"
+
 
 ### User settings
 
@@ -286,11 +288,13 @@ if [ -d /proc/acpi ]; then
 	chroot /target /usr/bin/apt-get install --yes acpi acpid
 	chroot /target service acpid stop
 fi
-
-ETHDEV=$(udevadm info -e | grep "ID_NET_NAME_PATH=" | head -n1 | cut -d= -f2)
+ETHDEV=$(udevadm info -e | grep "ID_NET_NAME_ONBOARD=" | head -n1 | cut -d= -f2) #Selects 1st onboard NIC, if present
+if [ "$ETHDEV" == "" ] ; then
+	ETHDEV=$(udevadm info -e | grep "ID_NET_NAME_PATH=" | head -n1 | cut -d= -f2) #Selects 1st addin NIC, if present
+fi
 test -n "$ETHDEV" || ETHDEV=enp0s1
 echo -e "\nauto $ETHDEV\niface $ETHDEV inet dhcp\n" >>/target/etc/network/interfaces
-echo -e "nameserver 8.8.8.8\nnameserver 8.8.4.4" >> /target/etc/resolv.conf
+echo -e "$NEWDNS" >> /target/etc/resolv.conf
 
 chroot /target /usr/bin/passwd
 chroot /target /usr/sbin/dpkg-reconfigure tzdata
