@@ -1,10 +1,10 @@
 #!/bin/bash -e
 #
-# debian-buster-zfs-root.sh V1.00
+# debian-buster-zfs-root.sh
 #
 # Install Debian GNU/Linux 10 Buster to a native ZFS root filesystem
 #
-# (C) 2018-2019 Hajo Noerenberg
+# (C) 2018-2020 Hajo Noerenberg
 #
 #
 # http://www.noerenberg.de/
@@ -24,21 +24,21 @@
 # with this program. If not, see <http://www.gnu.org/licenses/gpl-3.0.txt>.
 #
 
-### Static settings
+### Static settings, overridable by TARGET_* environment variables
 
-ZPOOL=rpool
-TARGETDIST=buster
+ZPOOL=${TARGET_ZPOOL:-rpool}
+TARGETDIST=${TARGET_DIST:-buster}
 
-PARTBIOS=1
-PARTEFI=2
-PARTZFS=3
+PARTBIOS=${TARGET_PARTBIOS:-1}
+PARTEFI=${TARGET_PARTEFI:-2}
+PARTZFS=${TARGET_PARTZFS:-3}
 
-SIZESWAP=2G
-SIZETMP=3G
-SIZEVARTMP=3G
+SIZESWAP=${TARGET_SIZESWAP:-2G}
+SIZETMP=${TARGET_SIZETMP:-3G}
+SIZEVARTMP=${TARGET_VARTMP:-3G}
 
-NEWHOST="" #Manually specify hostname of new install, otherwise it will be generated
-NEWDNS="8.8.8.8 8.8.4.4"
+NEWHOST=${TARGET_HOSTNAME}
+NEWDNS=${TARGET_DNS:-8.8.8.8 8.8.4.4}
 
 ### User settings
 
