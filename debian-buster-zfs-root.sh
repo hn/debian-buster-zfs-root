@@ -38,6 +38,7 @@ SIZETMP=3G
 SIZEVARTMP=3G
 
 NEWHOST="" #Manually specify hostname of new install, otherwise it will be generated
+NEWDNS="8.8.8.8 8.8.4.4"
 
 ### User settings
 
@@ -290,7 +291,9 @@ ETHDEV=$(udevadm info -e | grep "ID_NET_NAME_ONBOARD=" | head -n1 | cut -d= -f2)
 test -n "$ETHDEV" || ETHDEV=$(udevadm info -e | grep "ID_NET_NAME_PATH=" | head -n1 | cut -d= -f2)
 test -n "$ETHDEV" || ETHDEV=enp0s1
 echo -e "\nauto $ETHDEV\niface $ETHDEV inet dhcp\n" >>/target/etc/network/interfaces
-echo -e "nameserver 8.8.8.8\nnameserver 8.8.4.4" >> /target/etc/resolv.conf
+for DNS in $NEWDNS; do
+	echo -e "nameserver $DNS" >> /target/etc/resolv.conf
+done
 
 chroot /target /usr/bin/passwd
 chroot /target /usr/sbin/dpkg-reconfigure tzdata
