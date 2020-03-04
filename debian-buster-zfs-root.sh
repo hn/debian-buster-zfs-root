@@ -37,6 +37,8 @@ SIZESWAP=2G
 SIZETMP=3G
 SIZEVARTMP=3G
 
+NEWHOST="" #Manually specify hostname of new install, otherwise it will be generated
+
 ### User settings
 
 declare -A BYID
@@ -225,7 +227,7 @@ zfs list
 
 debootstrap --include=openssh-server,locales,linux-headers-amd64,linux-image-amd64,joe,rsync,sharutils,psmisc,htop,patch,less --components main,contrib,non-free $TARGETDIST /target http://deb.debian.org/debian/
 
-NEWHOST=debian-$(hostid)
+test -n "$NEWHOST" || NEWHOST=debian-$(hostid)
 echo "$NEWHOST" >/target/etc/hostname
 sed -i "1s/^/127.0.1.1\t$NEWHOST\n/" /target/etc/hosts
 
